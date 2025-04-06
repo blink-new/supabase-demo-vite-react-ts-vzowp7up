@@ -3,8 +3,13 @@ import { useState, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
 import type { Task } from '../types/database.types'
+import type { Session } from '@supabase/supabase-js'
 
-export default function TaskDashboard({ session }) {
+interface TaskDashboardProps {
+  session: Session
+}
+
+export default function TaskDashboard({ session }: TaskDashboardProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [newTask, setNewTask] = useState('')
   const [loading, setLoading] = useState(true)

@@ -5,9 +5,10 @@ import { ThemeSupa } from '@supabase/auth-ui-shared'
 import { Toaster } from 'react-hot-toast'
 import { supabase } from './lib/supabase'
 import TaskDashboard from './components/TaskDashboard'
+import type { Session } from '@supabase/supabase-js'
 
 function App() {
-  const [session, setSession] = useState(null)
+  const [session, setSession] = useState<Session | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
