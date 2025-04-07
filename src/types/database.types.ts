@@ -12,8 +12,15 @@ export interface Database {
     Tables: {
       tasks: {
         Row: Task
-        Insert: Omit<Task, 'id' | 'created_at'>
-        Update: Partial<Omit<Task, 'id' | 'created_at'>>
+        Insert: {
+          title: string
+          user_id: string
+          is_complete?: boolean
+        }
+        Update: {
+          title?: string
+          is_complete?: boolean
+        }
       }
     }
   }
