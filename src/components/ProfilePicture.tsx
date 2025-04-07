@@ -13,12 +13,22 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
   const [uploading, setUploading] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   useEffect(() => {
     if (session?.user.id) {
       getExistingAvatar()
     }
   }, [session?.user.id])
+
+  // Cleanup preview URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [previewUrl])
 
   async function getExistingAvatar() {
     try {
@@ -34,6 +44,7 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
           .getPublicUrl(profile.avatar_url)
         
         setAvatarUrl(data.publicUrl)
+        setPreviewUrl(null) // Clear any preview when loading existing avatar
       }
     } catch (error) {
       console.error('Error loading avatar:', error)
@@ -51,9 +62,15 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
       const file = event.target.files[0]
       setAvatarFile(file)
 
+      // Cleanup old preview if exists
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+
       // Create a preview URL for immediate display
-      const previewUrl = URL.createObjectURL(file)
-      setAvatarUrl(previewUrl)
+      const newPreviewUrl = URL.createObjectURL(file)
+      setPreviewUrl(newPreviewUrl)
+      setAvatarUrl(null) // Clear the old avatar URL while uploading
 
       // Upload immediately when file is selected
       await saveAvatar(file)
@@ -120,6 +137,11 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
       // Update the avatar URL state with the permanent URL
       setAvatarUrl(urlData.publicUrl)
       setAvatarFile(null)
+      // Clear preview after successful upload
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+        setPreviewUrl(null)
+      }
       toast.success('Avatar updated!')
     } catch (error) {
       toast.error('Error saving avatar!')
@@ -160,6 +182,11 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
 
       setAvatarUrl(null)
       setAvatarFile(null)
+      // Clear preview if exists
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+        setPreviewUrl(null)
+      }
       toast.success('Avatar removed!')
     } catch (error) {
       toast.error('Error removing avatar!')
@@ -169,6 +196,8 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
     }
   }
 
+  const displayUrl = previewUrl || avatarUrl
+
   return (
     <div className="max-w-md mx-auto p-4 bg-white rounded-lg shadow-sm">
       <h2 className="text-xl font-semibold mb-4">Profile Picture</h2>
@@ -176,10 +205,10 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
       <div className="space-y-4">
         {/* Avatar Preview */}
         <div className="flex justify-center">
-          {avatarUrl ? (
+          {displayUrl ? (
             <div className="relative">
               <img
-                src={avatarUrl}
+                src={displayUrl}
                 alt="Avatar"
                 className="h-32 w-32 rounded-full object-cover border-2 border-gray-200"
               />
