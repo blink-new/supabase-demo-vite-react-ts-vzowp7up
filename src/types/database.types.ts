@@ -7,6 +7,14 @@ export interface Task {
   user_id: string
 }
 
+export interface Profile {
+  id: string
+  created_at: string
+  updated_at: string | null
+  avatar_url: string | null
+  user_id: string
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -20,6 +28,19 @@ export interface Database {
         Update: {
           title?: string
           is_complete?: boolean
+        }
+      }
+      profiles: {
+        Row: Profile
+        Insert: {
+          id: string
+          avatar_url?: string | null
+          user_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          updated_at?: string | null
         }
       }
     }

@@ -5,6 +5,7 @@ import { Auth } from './components/Auth'
 import { TaskDashboard } from './components/TaskDashboard'
 import { ProfilePicture } from './components/ProfilePicture'
 import type { Session } from '@supabase/supabase-js'
+import { Toaster } from 'react-hot-toast'
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -35,6 +36,7 @@ export default function App() {
           </div>
         )}
       </div>
+      <Toaster position="bottom-right" />
     </div>
   )
 }
