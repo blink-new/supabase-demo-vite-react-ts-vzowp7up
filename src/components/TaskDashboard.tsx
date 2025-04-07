@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
 import type { Task } from '../types/database.types'
 import type { Session } from '@supabase/supabase-js'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 
 interface TaskDashboardProps {
   session: Session | null
@@ -15,26 +16,62 @@ export function TaskDashboard({ session }: TaskDashboardProps) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let channel: RealtimeChannel | null = null
+
     if (session) {
       fetchTasks()
       
-      // Set up real-time subscription
-      const channel = supabase
-        .channel('tasks')
+      // Set up real-time subscription with specific handlers for each event
+      channel = supabase
+        .channel('tasks-channel')
         .on('postgres_changes', 
           { 
-            event: '*', 
+            event: 'INSERT', 
             schema: 'public', 
-            table: 'tasks' 
+            table: 'tasks',
+            filter: `user_id=eq.${session.user.id}`
           }, 
-          () => {
-            fetchTasks()
+          (payload) => {
+            const newTask = payload.new as Task
+            setTasks(current => [newTask, ...current])
+          }
+        )
+        .on('postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'tasks',
+            filter: `user_id=eq.${session.user.id}`
+          },
+          (payload) => {
+            const updatedTask = payload.new as Task
+            setTasks(current => 
+              current.map(task => 
+                task.id === updatedTask.id ? updatedTask : task
+              )
+            )
+          }
+        )
+        .on('postgres_changes',
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'tasks',
+            filter: `user_id=eq.${session.user.id}`
+          },
+          (payload) => {
+            const deletedTask = payload.old as Task
+            setTasks(current => 
+              current.filter(task => task.id !== deletedTask.id)
+            )
           }
         )
         .subscribe()
 
       return () => {
-        supabase.removeChannel(channel)
+        if (channel) {
+          supabase.removeChannel(channel)
+        }
       }
     } else {
       setTasks([])
@@ -71,6 +108,7 @@ export function TaskDashboard({ session }: TaskDashboardProps) {
         ])
 
       if (error) throw error
+      // Clear input immediately for better UX
       setNewTask('')
       toast.success('Task added!')
     } catch (error) {
