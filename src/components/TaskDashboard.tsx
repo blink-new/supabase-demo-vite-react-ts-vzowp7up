@@ -21,7 +21,6 @@ export function TaskDashboard({ session }: TaskDashboardProps) {
     if (session) {
       fetchTasks()
       
-      // Set up real-time subscription with specific handlers for each event
       channel = supabase
         .channel('tasks-channel')
         .on('postgres_changes', 
@@ -32,6 +31,7 @@ export function TaskDashboard({ session }: TaskDashboardProps) {
             filter: `user_id=eq.${session.user.id}`
           }, 
           (payload) => {
+            console.log('INSERT event received:', payload)
             const newTask = payload.new as Task
             setTasks(current => [newTask, ...current])
           }
@@ -44,6 +44,7 @@ export function TaskDashboard({ session }: TaskDashboardProps) {
             filter: `user_id=eq.${session.user.id}`
           },
           (payload) => {
+            console.log('UPDATE event received:', payload)
             const updatedTask = payload.new as Task
             setTasks(current => 
               current.map(task => 
@@ -60,6 +61,7 @@ export function TaskDashboard({ session }: TaskDashboardProps) {
             filter: `user_id=eq.${session.user.id}`
           },
           (payload) => {
+            console.log('DELETE event received:', payload)
             const deletedTask = payload.old as Task
             setTasks(current => 
               current.filter(task => task.id !== deletedTask.id)
@@ -101,32 +103,53 @@ export function TaskDashboard({ session }: TaskDashboardProps) {
     if (!newTask.trim() || !session) return
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('tasks')
         .insert([
-          { title: newTask.trim(), user_id: session.user.id, is_complete: false },
+          { 
+            title: newTask.trim(), 
+            user_id: session.user.id, 
+            is_complete: false 
+          }
         ])
+        .select()
+        .single()
 
       if (error) throw error
-      // Clear input immediately for better UX
-      setNewTask('')
-      toast.success('Task added!')
+
+      // Immediately update UI with the new task
+      if (data) {
+        setTasks(current => [data, ...current])
+        setNewTask('')
+        toast.success('Task added!')
+      }
     } catch (error) {
+      console.error('Error adding task:', error)
       toast.error('Error adding task!')
     }
   }
 
   async function toggleTask(task: Task) {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('tasks')
         .update({ is_complete: !task.is_complete })
         .eq('id', task.id)
         .eq('user_id', session?.user.id)
+        .select()
+        .single()
 
       if (error) throw error
-      toast.success('Task updated!')
+
+      // Immediately update UI with the updated task
+      if (data) {
+        setTasks(current =>
+          current.map(t => t.id === data.id ? data : t)
+        )
+        toast.success('Task updated!')
+      }
     } catch (error) {
+      console.error('Error updating task:', error)
       toast.error('Error updating task!')
     }
   }
@@ -140,8 +163,12 @@ export function TaskDashboard({ session }: TaskDashboardProps) {
         .eq('user_id', session?.user.id)
 
       if (error) throw error
+
+      // Immediately update UI by removing the deleted task
+      setTasks(current => current.filter(task => task.id !== id))
       toast.success('Task deleted!')
     } catch (error) {
+      console.error('Error deleting task:', error)
       toast.error('Error deleting task!')
     }
   }
