@@ -4,6 +4,7 @@ import { supabase } from './lib/supabase'
 import { Auth } from './components/Auth'
 import { TaskDashboard } from './components/TaskDashboard'
 import { ProfilePicture } from './components/ProfilePicture'
+import { ProfileHandler } from './components/ProfileHandler'
 import type { Session } from '@supabase/supabase-js'
 import { Toaster } from 'react-hot-toast'
 
@@ -30,10 +31,13 @@ export default function App() {
         {!session ? (
           <Auth />
         ) : (
-          <div className="space-y-8">
-            <ProfilePicture session={session} />
-            <TaskDashboard session={session} />
-          </div>
+          <>
+            <ProfileHandler session={session} />
+            <div className="space-y-8">
+              <ProfilePicture session={session} />
+              <TaskDashboard session={session} />
+            </div>
+          </>
         )}
       </div>
       <Toaster position="bottom-right" />
