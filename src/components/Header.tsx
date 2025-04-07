@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { Button } from './ui/button'
-import { Avatar, AvatarFallback } from './ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,21 +29,53 @@ export function Header() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
+      if (session?.user) {
+        fetchAvatar(session.user.id)
+      }
       setLoading(false)
     })
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
+      if (session?.user) {
+        fetchAvatar(session.user.id)
+      } else {
+        setAvatarUrl(null)
+      }
     })
 
     return () => subscription.unsubscribe()
   }, [])
+
+  const fetchAvatar = async (userId: string) => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('avatar_url')
+        .eq('id', userId)
+        .single()
+
+      if (profile?.avatar_url) {
+        const { data } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(profile.avatar_url)
+        
+        setAvatarUrl(data.publicUrl)
+      } else {
+        setAvatarUrl(null)
+      }
+    } catch (error) {
+      console.error('Error fetching avatar:', error)
+      setAvatarUrl(null)
+    }
+  }
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -104,6 +136,9 @@ export function Header() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
+                    {avatarUrl ? (
+                      <AvatarImage src={avatarUrl} alt={user.email || 'User avatar'} />
+                    ) : null}
                     <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 </Button>
