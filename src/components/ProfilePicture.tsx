@@ -85,6 +85,11 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
 
       if (uploadError) throw uploadError
 
+      // Get the public URL immediately after upload
+      const { data: publicUrlData } = await supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName)
+
       // Update user profile
       const { error: updateError } = await supabase
         .from('profiles')
@@ -97,8 +102,9 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
 
       if (updateError) throw updateError
 
+      // Update the avatar URL with the public URL
+      setAvatarUrl(publicUrlData.publicUrl)
       toast.success('Avatar updated!')
-      getExistingAvatar() // Refresh to get the new URL
     } catch (error) {
       toast.error('Error uploading avatar!')
       console.error('Error:', error)
