@@ -84,16 +84,38 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
         .from('avatars')
         .getPublicUrl(fileName)
 
-      // Update profile with new avatar URL
-      const { error: updateError } = await supabase
+      // Check if profile exists
+      const { data: existingProfile } = await supabase
         .from('profiles')
-        .upsert({
-          id: session.user.id,
-          avatar_url: fileName,
-          updated_at: new Date().toISOString(),
-        })
+        .select('id')
+        .eq('id', session.user.id)
+        .single()
 
-      if (updateError) throw updateError
+      if (existingProfile) {
+        // Update existing profile
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            avatar_url: fileName,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', session.user.id)
+
+        if (updateError) throw updateError
+      } else {
+        // Insert new profile
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: session.user.id,
+            user_id: session.user.id,
+            avatar_url: fileName,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+
+        if (insertError) throw insertError
+      }
 
       // Update the avatar URL state with the permanent URL
       setAvatarUrl(urlData.publicUrl)
@@ -126,13 +148,15 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
       }
 
       // Update profile
-      await supabase
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({ 
           avatar_url: null,
           updated_at: new Date().toISOString()
         })
         .eq('id', session.user.id)
+
+      if (updateError) throw updateError
 
       setAvatarUrl(null)
       setAvatarFile(null)
