@@ -22,20 +22,14 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
 
   async function getExistingAvatar() {
     try {
-      const { data: profile, error } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
         .select('avatar_url')
         .eq('id', session?.user.id)
         .single()
 
-      if (error) {
-        // If no profile found, that's okay - the ProfileHandler will create it
-        if (error.code === 'PGRST116') return
-        throw error
-      }
-
       if (profile?.avatar_url) {
-        const { data } = await supabase.storage
+        const { data } = supabase.storage
           .from('avatars')
           .getPublicUrl(profile.avatar_url)
         
@@ -57,60 +51,57 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
       const file = event.target.files[0]
       setAvatarFile(file)
 
-      // Show preview immediately
-      const objectUrl = URL.createObjectURL(file)
-      setAvatarUrl(objectUrl)
+      // Create a preview URL for immediate display
+      const previewUrl = URL.createObjectURL(file)
+      setAvatarUrl(previewUrl)
 
+      // Upload immediately when file is selected
+      await saveAvatar(file)
     } catch (error) {
-      toast.error('Error selecting image!')
+      toast.error('Error uploading image!')
       console.error('Error:', error)
     } finally {
       setUploading(false)
     }
   }
 
-  async function saveAvatar() {
+  async function saveAvatar(file: File) {
     try {
-      if (!avatarFile || !session) return
+      if (!session) return
 
-      setUploading(true)
-
-      // Upload image
-      const fileExt = avatarFile.name.split('.').pop()
+      const fileExt = file.name.split('.').pop()
       const fileName = `${session.user.id}-${Math.random()}.${fileExt}`
 
+      // Upload the file
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, avatarFile)
+        .upload(fileName, file)
 
       if (uploadError) throw uploadError
 
-      // Get the public URL immediately after upload
-      const { data: publicUrlData } = await supabase.storage
+      // Get the public URL
+      const { data: urlData } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName)
 
-      // Update user profile
+      // Update profile with new avatar URL
       const { error: updateError } = await supabase
         .from('profiles')
         .upsert({
           id: session.user.id,
-          user_id: session.user.id,
           avatar_url: fileName,
           updated_at: new Date().toISOString(),
         })
 
       if (updateError) throw updateError
 
-      // Update the avatar URL with the public URL
-      setAvatarUrl(publicUrlData.publicUrl)
+      // Update the avatar URL state with the permanent URL
+      setAvatarUrl(urlData.publicUrl)
+      setAvatarFile(null)
       toast.success('Avatar updated!')
     } catch (error) {
-      toast.error('Error uploading avatar!')
+      toast.error('Error saving avatar!')
       console.error('Error:', error)
-    } finally {
-      setUploading(false)
-      setAvatarFile(null)
     }
   }
 
@@ -129,23 +120,19 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
 
       if (profile?.avatar_url) {
         // Remove from storage
-        const { error: removeError } = await supabase.storage
+        await supabase.storage
           .from('avatars')
           .remove([profile.avatar_url])
-
-        if (removeError) throw removeError
       }
 
       // Update profile
-      const { error: updateError } = await supabase
+      await supabase
         .from('profiles')
         .update({ 
           avatar_url: null,
           updated_at: new Date().toISOString()
         })
         .eq('id', session.user.id)
-
-      if (updateError) throw updateError
 
       setAvatarUrl(null)
       setAvatarFile(null)
@@ -157,8 +144,6 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
       setUploading(false)
     }
   }
-
-  if (!session) return null
 
   return (
     <div className="max-w-md mx-auto p-4 bg-white rounded-lg shadow-sm">
@@ -207,16 +192,6 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
                 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </label>
-
-          {avatarFile && (
-            <button
-              onClick={saveAvatar}
-              disabled={uploading}
-              className="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {uploading ? 'Uploading...' : 'Save Avatar'}
-            </button>
-          )}
         </div>
 
         {/* Instructions */}
