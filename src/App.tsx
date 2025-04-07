@@ -5,6 +5,7 @@ import { Auth } from './components/Auth'
 import { TaskDashboard } from './components/TaskDashboard'
 import { ProfilePicture } from './components/ProfilePicture'
 import { ProfileHandler } from './components/ProfileHandler'
+import { Nav } from './components/Nav'
 import type { Session } from '@supabase/supabase-js'
 import { Toaster } from 'react-hot-toast'
 
@@ -27,7 +28,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto py-8 px-4">
+      <Nav session={session} />
+      <main className="container mx-auto py-8 px-4">
         {!session ? (
           <Auth />
         ) : (
@@ -39,7 +41,7 @@ export default function App() {
             </div>
           </>
         )}
-      </div>
+      </main>
       <Toaster position="bottom-right" />
     </div>
   )
