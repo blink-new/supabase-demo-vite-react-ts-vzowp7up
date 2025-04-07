@@ -1,22 +1,22 @@
 
 import { useState, useEffect } from 'react'
-import { Session } from '@supabase/supabase-js'
-import { Header } from './components/Header'
-import { TaskDashboard } from './components/TaskDashboard'
 import { supabase } from './lib/supabase'
-import './App.css'
+import { Auth } from './components/Auth'
+import { TaskDashboard } from './components/TaskDashboard'
+import { ProfilePicture } from './components/ProfilePicture'
+import type { Session } from '@supabase/supabase-js'
 
-function App() {
+export default function App() {
   const [session, setSession] = useState<Session | null>(null)
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
     })
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
     })
 
@@ -24,13 +24,17 @@ function App() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container mx-auto px-4 py-8">
-        <TaskDashboard session={session} />
-      </main>
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto py-8 px-4">
+        {!session ? (
+          <Auth />
+        ) : (
+          <div className="space-y-8">
+            <ProfilePicture session={session} />
+            <TaskDashboard session={session} />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
-
-export default App
