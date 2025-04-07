@@ -22,11 +22,17 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
 
   async function getExistingAvatar() {
     try {
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('avatar_url')
         .eq('id', session?.user.id)
         .single()
+
+      if (error) {
+        // If no profile found, that's okay - the ProfileHandler will create it
+        if (error.code === 'PGRST116') return
+        throw error
+      }
 
       if (profile?.avatar_url) {
         const { data } = await supabase.storage
@@ -84,6 +90,7 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
         .from('profiles')
         .upsert({
           id: session.user.id,
+          user_id: session.user.id,
           avatar_url: fileName,
           updated_at: new Date().toISOString(),
         })
@@ -126,7 +133,10 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
       // Update profile
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: null })
+        .update({ 
+          avatar_url: null,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', session.user.id)
 
       if (updateError) throw updateError
