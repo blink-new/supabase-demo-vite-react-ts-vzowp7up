@@ -6,42 +6,48 @@ import type { Task } from '../types/database.types'
 import type { Session } from '@supabase/supabase-js'
 
 interface TaskDashboardProps {
-  session: Session
+  session: Session | null
 }
 
-export default function TaskDashboard({ session }: TaskDashboardProps) {
+export function TaskDashboard({ session }: TaskDashboardProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [newTask, setNewTask] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchTasks()
-    
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('tasks')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'tasks' 
-        }, 
-        () => {
-          fetchTasks()
-        }
-      )
-      .subscribe()
+    if (session) {
+      fetchTasks()
+      
+      // Set up real-time subscription
+      const channel = supabase
+        .channel('tasks')
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'tasks' 
+          }, 
+          () => {
+            fetchTasks()
+          }
+        )
+        .subscribe()
 
-    return () => {
-      supabase.removeChannel(channel)
+      return () => {
+        supabase.removeChannel(channel)
+      }
+    } else {
+      setTasks([])
+      setLoading(false)
     }
-  }, [])
+  }, [session])
 
   async function fetchTasks() {
     try {
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
+        .eq('user_id', session?.user.id)
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -55,7 +61,7 @@ export default function TaskDashboard({ session }: TaskDashboardProps) {
 
   async function addTask(e: React.FormEvent) {
     e.preventDefault()
-    if (!newTask.trim()) return
+    if (!newTask.trim() || !session) return
 
     try {
       const { error } = await supabase
@@ -78,6 +84,7 @@ export default function TaskDashboard({ session }: TaskDashboardProps) {
         .from('tasks')
         .update({ is_complete: !task.is_complete })
         .eq('id', task.id)
+        .eq('user_id', session?.user.id)
 
       if (error) throw error
       toast.success('Task updated!')
@@ -92,12 +99,22 @@ export default function TaskDashboard({ session }: TaskDashboardProps) {
         .from('tasks')
         .delete()
         .eq('id', id)
+        .eq('user_id', session?.user.id)
 
       if (error) throw error
       toast.success('Task deleted!')
     } catch (error) {
       toast.error('Error deleting task!')
     }
+  }
+
+  if (!session) {
+    return (
+      <div className="text-center py-12">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-2">Welcome to Task Manager</h2>
+        <p className="text-gray-600">Please sign in to manage your tasks.</p>
+      </div>
+    )
   }
 
   if (loading) {
