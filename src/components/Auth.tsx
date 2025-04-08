@@ -69,15 +69,35 @@ export function Auth() {
   const handleGoogleLogin = async () => {
     try {
       setLoading(true)
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin
+          redirectTo: window.location.origin,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         }
       })
-      if (error) throw error
+      
+      if (error) {
+        if (error.message.includes('configuration')) {
+          toast.error('Google login is not properly configured. Please contact support.')
+        } else {
+          toast.error(error.message)
+        }
+        throw error
+      }
+
+      // If no error but also no URL to redirect to
+      if (!data?.url) {
+        toast.error('Unable to initiate Google login. Please try again later.')
+        return
+      }
+
+      // Success case is handled by redirect
     } catch (error: any) {
-      toast.error(error.message)
+      console.error('Google login error:', error)
     } finally {
       setLoading(false)
     }
