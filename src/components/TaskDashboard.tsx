@@ -1,10 +1,10 @@
 
 import { useState, useEffect } from 'react'
-import { toast } from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
 import type { Task } from '../types/database.types'
 import type { Session } from '@supabase/supabase-js'
 import type { RealtimeChannel } from '@supabase/supabase-js'
+import { useToast } from '@/components/ui/use-toast'
 
 interface TaskDashboardProps {
   session: Session | null
@@ -14,6 +14,7 @@ export function TaskDashboard({ session }: TaskDashboardProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [newTask, setNewTask] = useState('')
   const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
   useEffect(() => {
     let channel: RealtimeChannel | null = null
@@ -92,7 +93,11 @@ export function TaskDashboard({ session }: TaskDashboardProps) {
       if (error) throw error
       setTasks(data || [])
     } catch (error) {
-      toast.error('Error loading tasks!')
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not load tasks"
+      })
     } finally {
       setLoading(false)
     }
@@ -121,11 +126,18 @@ export function TaskDashboard({ session }: TaskDashboardProps) {
       if (data) {
         setTasks(current => [data, ...current])
         setNewTask('')
-        toast.success('Task added!')
+        toast({
+          title: "Success",
+          description: "Task added successfully"
+        })
       }
     } catch (error) {
       console.error('Error adding task:', error)
-      toast.error('Error adding task!')
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not add task"
+      })
     }
   }
 
@@ -146,11 +158,18 @@ export function TaskDashboard({ session }: TaskDashboardProps) {
         setTasks(current =>
           current.map(t => t.id === data.id ? data : t)
         )
-        toast.success('Task updated!')
+        toast({
+          title: "Success",
+          description: "Task updated successfully"
+        })
       }
     } catch (error) {
       console.error('Error updating task:', error)
-      toast.error('Error updating task!')
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not update task"
+      })
     }
   }
 
@@ -166,10 +185,17 @@ export function TaskDashboard({ session }: TaskDashboardProps) {
 
       // Immediately update UI by removing the deleted task
       setTasks(current => current.filter(task => task.id !== id))
-      toast.success('Task deleted!')
+      toast({
+        title: "Success",
+        description: "Task deleted successfully"
+      })
     } catch (error) {
       console.error('Error deleting task:', error)
-      toast.error('Error deleting task!')
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not delete task"
+      })
     }
   }
 

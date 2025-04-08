@@ -7,7 +7,7 @@ import { ProfilePicture } from './components/ProfilePicture'
 import { ProfileHandler } from './components/ProfileHandler'
 import { Nav } from './components/Nav'
 import type { Session } from '@supabase/supabase-js'
-import { Toaster } from 'react-hot-toast'
+import { Toaster } from '@/components/ui/toaster'
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -42,7 +42,7 @@ export default function App() {
           </>
         )}
       </main>
-      <Toaster position="bottom-right" />
+      <Toaster />
     </div>
   )
 }
