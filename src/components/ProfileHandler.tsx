@@ -33,7 +33,6 @@ export function ProfileHandler({ session }: ProfileHandlerProps) {
             .from('profiles')
             .insert({
               id: session.user.id,
-              user_id: session.user.id,
               updated_at: new Date().toISOString()
             })
             .select()

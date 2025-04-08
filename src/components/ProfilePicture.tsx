@@ -32,11 +32,13 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
 
   async function getExistingAvatar() {
     try {
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('avatar_url')
         .eq('id', session?.user.id)
-        .single()
+        .maybeSingle()
+
+      if (error) throw error
 
       if (profile?.avatar_url) {
         const { data } = supabase.storage
@@ -48,6 +50,7 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
       }
     } catch (error) {
       console.error('Error loading avatar:', error)
+      toast.error('Failed to load avatar')
     }
   }
 
@@ -102,11 +105,13 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
         .getPublicUrl(fileName)
 
       // Check if profile exists
-      const { data: existingProfile } = await supabase
+      const { data: existingProfile, error: profileError } = await supabase
         .from('profiles')
         .select('id')
         .eq('id', session.user.id)
-        .single()
+        .maybeSingle()
+
+      if (profileError) throw profileError
 
       if (existingProfile) {
         // Update existing profile
@@ -125,7 +130,6 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
           .from('profiles')
           .insert({
             id: session.user.id,
-            user_id: session.user.id,
             avatar_url: fileName,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -156,17 +160,21 @@ export function ProfilePicture({ session }: ProfilePictureProps) {
       setUploading(true)
 
       // Get current avatar filename
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('avatar_url')
         .eq('id', session.user.id)
-        .single()
+        .maybeSingle()
+
+      if (profileError) throw profileError
 
       if (profile?.avatar_url) {
         // Remove from storage
-        await supabase.storage
+        const { error: storageError } = await supabase.storage
           .from('avatars')
           .remove([profile.avatar_url])
+          
+        if (storageError) throw storageError
       }
 
       // Update profile
