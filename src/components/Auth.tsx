@@ -12,9 +12,46 @@ export function Auth() {
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [emailError, setEmailError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!email) {
+      setEmailError('Email is required')
+      return false
+    }
+    if (!emailRegex.test(email)) {
+      setEmailError('Please enter a valid email address')
+      return false
+    }
+    setEmailError('')
+    return true
+  }
+
+  const validatePassword = (password: string) => {
+    if (!password) {
+      setPasswordError('Password is required')
+      return false
+    }
+    if (password.length < 6) {
+      setPasswordError('Password must be at least 6 characters')
+      return false
+    }
+    setPasswordError('')
+    return true
+  }
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    
+    const isEmailValid = validateEmail(email)
+    const isPasswordValid = validatePassword(password)
+    
+    if (!isEmailValid || !isPasswordValid) {
+      return
+    }
+
     try {
       setLoading(true)
       const { error } = await supabase.auth.signInWithPassword({
@@ -47,6 +84,13 @@ export function Auth() {
   }
 
   const handleSignUp = async () => {
+    const isEmailValid = validateEmail(email)
+    const isPasswordValid = validatePassword(password)
+    
+    if (!isEmailValid || !isPasswordValid) {
+      return
+    }
+
     try {
       setLoading(true)
       const { error } = await supabase.auth.signUp({
@@ -80,11 +124,17 @@ export function Auth() {
                 type="email"
                 placeholder="m@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="pl-10"
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  if (emailError) validateEmail(e.target.value)
+                }}
+                className={`pl-10 ${emailError ? 'border-red-500' : ''}`}
                 required
               />
             </div>
+            {emailError && (
+              <p className="text-sm text-red-500">{emailError}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -95,11 +145,17 @@ export function Auth() {
                 id="password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pl-10"
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  if (passwordError) validatePassword(e.target.value)
+                }}
+                className={`pl-10 ${passwordError ? 'border-red-500' : ''}`}
                 required
               />
             </div>
+            {passwordError && (
+              <p className="text-sm text-red-500">{passwordError}</p>
+            )}
           </div>
 
           <Button
