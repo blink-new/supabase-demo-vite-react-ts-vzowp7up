@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import type { Task } from '../types/database.types'
 import type { Session } from '@supabase/supabase-js'
 import type { RealtimeChannel } from '@supabase/supabase-js'
-import { useToast } from '@/components/ui/use-toast'
+import { useToast } from '../hooks/use-toast'
 
 interface TaskDashboardProps {
   session: Session | null
