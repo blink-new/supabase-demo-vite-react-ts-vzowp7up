@@ -7,10 +7,19 @@ export async function generateTaskLabel(taskDescription: string): Promise<string
       body: { task: taskDescription }
     })
 
-    if (error) throw error
+    if (error) {
+      console.error('Supabase function error:', error)
+      throw new Error('Failed to generate label')
+    }
+    
+    if (!data || !data.label) {
+      console.error('Invalid response:', data)
+      throw new Error('Invalid label response')
+    }
+
     return data.label
   } catch (error) {
     console.error('Error generating label:', error)
-    return 'Task' // fallback label
+    throw error // Let the component handle the error
   }
 }
