@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { useToast } from './ui/use-toast'
+import { useToast } from '../hooks/use-toast'
 import { generateTaskLabel } from '../lib/openai'
 import { Loader2 } from 'lucide-react'
 
